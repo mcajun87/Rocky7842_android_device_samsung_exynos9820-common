@@ -81,6 +81,20 @@ BOARD_SAMSUNG_DYNAMIC_PARTITIONS_PARTITION_LIST := \
     odm
 
 -include vendor/lineage/config/BoardConfigReservedSize.mk
+
+# ---------------------------------------------------------------------------
+# 引入 LineageOS 的 BoardConfig 公共配置（内核 + soong 变量导出）
+#
+# 本设备树是从 lineage/fox 12.1 改过来的，只 include 了 ReservedSize，
+# 漏掉了这一行。后果：
+#   vendor/lineage/config/BoardConfigKernel.mk 里定义的 KERNEL_MAKE_CMD、
+#   KERNEL_MAKE_FLAGS、KERNEL_BUILD_OUT_PREFIX 全部为空，
+#   BoardConfigSoong.mk 于是把这些空值导出给 soong，而 soong 把空值当"未定义"，
+#   最终在解析 vendor/lineage/build/soong/Android.bp 的
+#   generated_kernel_includes 时报：
+#       cmd: unknown variable '$(KERNEL_BUILD_OUT_PREFIX)'
+# ---------------------------------------------------------------------------
+include vendor/lineage/config/BoardConfigLineage.mk
 BOARD_VENDORIMAGE_PARTITION_RESERVED_SIZE := 67108864
 
 ## Filesystem
