@@ -23,12 +23,13 @@ TARGET_CPU_ABI := arm64-v8a
 TARGET_CPU_ABI2 :=
 TARGET_CPU_VARIANT := generic
 
-## Architecture (Secondary)
-TARGET_2ND_ARCH := arm
-TARGET_2ND_ARCH_VARIANT := armv8-2a
-TARGET_2ND_CPU_ABI := armeabi-v7a
-TARGET_2ND_CPU_ABI2 := armeabi
-TARGET_2ND_CPU_VARIANT := generic
+# [DSH] 关闭 32 位：以下整段注释掉，把 soong 的模块变体数接近腰斩
+# ## Architecture (Secondary)
+# TARGET_2ND_ARCH := arm
+# TARGET_2ND_ARCH_VARIANT := armv8-2a
+# TARGET_2ND_CPU_ABI := armeabi-v7a
+# TARGET_2ND_CPU_ABI2 := armeabi
+# TARGET_2ND_CPU_VARIANT := generic
 
 ## Audio
 $(call soong_config_set,exynos_audio,PREDEFINED_LOW_CAPTURE_DURATION,20)
@@ -200,3 +201,30 @@ WIFI_HIDL_UNIFIED_SUPPLICANT_SERVICE_RC_ENTRY := true
 WPA_SUPPLICANT_VERSION           := VER_0_8_X
 
 $(call soong_config_set_bool,wpa_supplicant_8,board_wlan_bcmdhd_sae,true)
+
+# ---------------------------------------------------------------------------
+# [DSH] 只构建 64 位变体
+#
+# 本机只有 13GB 可用内存（宿主机 16GB），而 Android 17 的 soong 分析在
+# 64+32 双架构下常驻堆约 11GB，反复被换页拖死（实测连续三次在 100~140 分钟
+# 处失去响应）。关掉 32 位后模块变体数接近腰斩，soong 堆占用显著下降。
+#
+# 若要恢复 32 位：把上面的 "## Architecture (Secondary)" 段取消注释，
+# 并删掉下面两行。
+# ---------------------------------------------------------------------------
+TARGET_SUPPORTS_32_BIT_APPS := false
+TARGET_SUPPORTS_64_BIT_APPS := true
+
+# ---------------------------------------------------------------------------
+# 不构建、也不打包官方 recovery
+#
+# 用户要求：ROM 绝对不能自带 recovery，也不能在开机后把 OrangeFox 换回官方 recovery。
+# 自建 ROM 的 proprietary-files.txt 里本来就没有 /vendor/etc/recovery.img 和
+# vendor_flash_recovery.rc（那是第三方预编译 ROM 才有的东西），这里再把
+# recovery.img 本身也去掉，OTA 包里就不会含恢复镜像。
+#
+# 如果 mka bacon 因为缺少 recovery.img 报错，把 TARGET_NO_RECOVERY 改回 false，
+# 仅靠上面两点 + OrangeFox 的 disablestockrecovery.sh 兜底。
+# ---------------------------------------------------------------------------
+TARGET_NO_RECOVERY := true
+BOARD_USES_FULL_RECOVERY_IMAGE := false
